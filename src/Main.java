@@ -6,10 +6,10 @@ public class Main {
     private final static int GRAVITY = 10;
     
     public static void main(String[] args) {
-        Util.runExample();
+        //Util.runExample();
         //Util.runFirst();
-        //Util.runSingle(2);
-        //Util.runAll();
+        //Util.runSingle(1);
+        Util.runAll();
     }
     
     /**
@@ -39,23 +39,30 @@ public class Main {
         int diffHeight = Math.abs(destHeight - pHeight);
         int vz = destHeight >= startHeight ? 1 : -1;
         
-        // Noch am Beschleunigen nach oben
-        // + pVelocity ist wichtig, weil sonst werden wir eventuell zu schnell
-        if (Math.abs(pHeight + pVelocity - startHeight) < Math.abs((destHeight - startHeight) / 2)) {
+        // + pVelocity ist wichtig, weil sonst werden wir eventuell zu schnell; > 10 ist wichtig für sehr niedrige Höhen
+        if (Math.abs(pHeight + pVelocity - startHeight) < Math.abs((destHeight - startHeight) / 2) && diffHeight > 10) {
+            System.out.print("A\t");
             return Math.max(Math.min(destHeight - startHeight, 10), -10);
         }
         // Solange noch weit genug entfern
-        if (diffHeight >= 10) {
+        if (diffHeight > 10) {
+            System.out.print("B\t");
             // Voll bremsen, sofern Geschwindigkeit noch > 10, sonst Geschwindigkeit beibehalten
             return (Math.abs(pVelocity) > 10 ? -10 * vz : 0);
         }
-        // Solange noch nicht Zielhöhe erreicht
-        if (diffHeight > 0) {
+        // Wenn nur noch 10 oder weniger entfernt, so bremsen, dass wir im nächsten Schritt auf Höhe 1 sind
+        if (diffHeight > 1) {
+            System.out.print("C\t");
             // Noch die letzten Meter beschleunigen, abzüglich der Geschwindigkeit
-            return (diffHeight - Math.abs(pVelocity)) * vz;
+            return (diffHeight - Math.abs(pVelocity) - 1) * vz;
         }
-        // Solange Geschwindigkeit noch nicht 0 ist, benötigt für identischen Sinkflug
+        // Wenn nur noch 1 entfernt, auf Geschwindigkeit -1 bremsen
+        if (diffHeight == 1) {
+            System.out.print("D\t");
+            return (-Math.abs(pVelocity) + 1) * vz;
+        }
         if (pVelocity != 0) {
+            System.out.print("E\t");
             return -pVelocity;
         }
         return 0;
@@ -76,20 +83,28 @@ public class Main {
             int[] height = new int[TimeLimit];
             velocity[0] = 0;
             height[0] = 0;
-            System.out.println("t\ta\tv\th\tup");
+            System.out.println("F\tt\ta\tv\th\tup");
             boolean up = true;
             for (int t = 1; t < TimeLimit; t++) {
                 int acc = accLevel3(velocity[t - 1], height[t - 1], startHeight, destHeight);
                 velocity[t] = velocity[t - 1] + acc;
                 height[t] = height[t - 1] + velocity[t];
                 outputWriter.print((acc + GRAVITY) + " ");
-                System.out.println(t + "\t" + acc + "\t" + velocity[t] + "\t" + height[t] + "\t" + up);
+                System.out.println(t + "\t" + acc + "\t" + velocity[t] + "\t" + height[t] + "\t" + (up ? "up" : "down"));
                 if (up && height[t] == destHeight && velocity[t] == 0) {
                     up = false;
-                    startHeight = destHeight;
+                    startHeight = height[t];
                     destHeight = 0;
                 }
-                if (!up && height[t] == 0 && velocity[t] == 0) {
+                if (!up && height[t] == 0 && (velocity[t] == 0 || velocity[t] == -1)) {
+                    break;
+                }
+                if (up && height[t] > destHeight) {
+                    System.out.println("Zu hoch geflogen");
+                    break;
+                }
+                if (height[t] < 0) {
+                    System.out.println("Auf dem Boden aufgekracht");
                     break;
                 }
             }
